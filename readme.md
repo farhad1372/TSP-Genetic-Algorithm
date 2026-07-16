@@ -1,116 +1,218 @@
-### توضیح کلی کد
+# TSP Genetic Algorithm
 
-هدف این برنامه حل مسئله فروشنده دوره‌گرد یا TSP با استفاده از الگوریتم ژنتیک است. در این مسئله باید مسیری پیدا شود که از یک شهر شروع کند، از تمام شهرها دقیقاً یک بار عبور کند و در پایان به شهر شروع برگردد. هدف اصلی این است که مجموع فاصله طی‌شده تا حد ممکن کم باشد.
+This project solves the Traveling Salesman Problem (TSP) using a Genetic Algorithm.
 
-برنامه مسئله را برای دو ماتریس فاصله حل می‌کند. ماتریس اول کامل و متقارن است؛ یعنی بین همه شهرها مسیر وجود دارد و فاصله رفت و برگشت برابر است. ماتریس دوم ناقص و نامتقارن است؛ بنابراین ممکن است بین بعضی شهرها مسیر مستقیم وجود نداشته باشد یا فاصله رفت و برگشت متفاوت باشد.
+The program works with two distance matrices:
 
-### کتابخانه‌های مورد استفاده
+1. A complete and symmetric distance matrix
+2. An incomplete and asymmetric distance matrix
 
-در این برنامه از کتابخانه‌های زیر استفاده شده است:
+The algorithm is executed several times with different random seeds, and the final results are reported using the mean and standard deviation.
 
-* `NumPy` برای انجام محاسبات عددی، کار با ماتریس‌ها و تولید اعداد تصادفی
-* `Pandas` برای خواندن فایل‌های CSV و ذخیره نتایج
-* `Matplotlib` برای رسم نمودار برازندگی و نمودارهای مقایسه‌ای
-* `Multiprocessing` برای اجرای چند آزمایش به‌صورت هم‌زمان
-* `Argparse` برای دریافت تنظیمات اجرا از خط فرمان
-* `JSON` برای ذخیره بهترین مسیرهای پیدا شده
+## Project Goal
 
-سه کتابخانه اصلی با دستور زیر نصب می‌شوند:
+The goal is to find a tour that:
+
+- Starts from one city
+- Visits every city exactly once
+- Returns to the starting city
+- Has the minimum possible total distance
+
+Each chromosome represents one complete ordering of the cities.
+
+## Main Features
+
+- Population-based TSP optimization
+- Tournament selection
+- Ordered Crossover (OX)
+- Three mutation operators:
+  - Swap
+  - Inversion
+  - Scramble
+- Elitism
+- Comparison of crossover, mutation, and elitism rates
+- Comparison of `mu + lambda` and `mu, lambda` replacement methods
+- Support for incomplete and asymmetric distance matrices
+- Fitness convergence plots
+- CSV and JSON output files
+- Multiple independent runs with different random seeds
+
+## Requirements
+
+Python 3.9 or newer is recommended.
+
+Install the required packages with:
 
 ```bash
 pip install numpy pandas matplotlib
 ```
 
-### تنظیمات الگوریتم
+The project also uses standard Python modules such as:
 
-در کلاس `GAConfig` تنظیمات اصلی الگوریتم ژنتیک قرار گرفته است. اندازه جمعیت برابر ۱۰۰، نرخ ترکیب ۹۰ درصد، نرخ جهش ۵ درصد و نرخ نخبگی ۵ درصد در نظر گرفته شده است. همچنین حداکثر تعداد نسل‌ها و شرط توقف الگوریتم نیز در همین قسمت مشخص می‌شود.
+- argparse
+- json
+- multiprocessing
+- pathlib
+- dataclasses
 
-### خواندن ماتریس فاصله
+These modules do not need separate installation.
 
-تابع `load_distance_matrix` فایل CSV را می‌خواند و اطلاعات آن را به یک ماتریس عددی تبدیل می‌کند. در این تابع بررسی می‌شود که ماتریس مربعی باشد، زیرا تعداد سطرها و ستون‌ها باید برابر تعداد شهرها باشد. مقدار قطر اصلی ماتریس نیز صفر قرار داده می‌شود، چون فاصله هر شهر تا خودش صفر است.
+## Project Files
 
-### نمایش یک مسیر
-
-هر جواب الگوریتم به‌صورت یک آرایه از شماره شهرها نمایش داده می‌شود. برای مثال مسیر زیر یعنی ابتدا شهر صفر، سپس شهر چهار، بعد شهر دو و در پایان شهر یک بازدید می‌شود:
+Place the following files in the same directory:
 
 ```text
-[0, 4, 2, 1]
+project/
+|-- main.py
+|-- distance_matrix_symmetric.csv
+|-- distance_matrix_incomplete_asymmetric (1).csv
+|-- README.md
+`-- README_FA.md
 ```
 
-در محاسبه هزینه، شهر آخر به‌صورت خودکار دوباره به شهر اول متصل می‌شود؛ بنابراین نیازی نیست شهر اول در انتهای آرایه تکرار شود.
+## How to Run
 
-### محاسبه هزینه مسیر
+First, run a small test:
 
-تابع `calculate_route_cost` مجموع فاصله بین شهرهای متوالی را محاسبه می‌کند. هرچه مقدار این تابع کمتر باشد، مسیر بهتر است.
+```bash
+python main.py --runs 2 --workers 1 --output test_results
+```
 
-تابع `evaluate_population` همین محاسبه را برای تمام اعضای جمعیت به‌صورت هم‌زمان انجام می‌دهد. استفاده از عملیات آرایه‌ای NumPy باعث می‌شود محاسبات سریع‌تر از اجرای حلقه جداگانه برای هر مسیر انجام شود.
+For the final experiment with 100 independent runs:
 
-در ماتریس ناقص، بعضی یال‌ها دارای مقدار نامعتبر یا `inf` هستند. برای جلوگیری از انتخاب این مسیرها، یک جریمه بسیار بزرگ به آن‌ها داده می‌شود. به این ترتیب الگوریتم به سمت مسیرهایی حرکت می‌کند که فقط از یال‌های موجود استفاده کنند.
+```bash
+python main.py --runs 100 --workers 1 --output final_results
+```
 
-### تولید جمعیت اولیه
+To use multiple CPU cores:
 
-تابع `create_initial_population` جمعیت اولیه الگوریتم را تولید می‌کند. هر عضو جمعیت یک ترتیب متفاوت از شهرها است.
+```bash
+python main.py --runs 100 --workers 4 --output final_results
+```
 
-برای ماتریس کامل، مسیرها به‌صورت تصادفی تولید می‌شوند. برای ماتریس ناقص، تابع `create_random_valid_route` تلاش می‌کند مسیرهایی بسازد که از یال‌های موجود عبور کنند. این کار باعث می‌شود تعداد بیشتری از جواب‌های اولیه معتبر باشند و الگوریتم سریع‌تر به جواب مناسب برسد.
+On Windows, `py` can be used instead of `python`:
 
-### انتخاب والدین
+```bash
+py main.py --runs 100 --workers 1 --output final_results
+```
 
-در تابع `tournament_selection` چند عضو از جمعیت به‌صورت تصادفی انتخاب می‌شوند و بهترین عضو آن‌ها به‌عنوان والد در نظر گرفته می‌شود. به این روش انتخاب تورنمنتی گفته می‌شود.
+## Command-Line Arguments
 
-از این روش استفاده شده است، چون هم به جواب‌های بهتر شانس بیشتری می‌دهد و هم اجازه می‌دهد تنوع جمعیت حفظ شود.
+- `--symmetric`: path to the complete symmetric matrix
+- `--asymmetric`: path to the incomplete asymmetric matrix
+- `--runs`: number of independent runs for each setting
+- `--workers`: number of parallel processes
+- `--output`: directory used to save the results
 
-### عملگر ترکیب
+Example:
 
-تابع `ordered_crossover` برای ترکیب دو مسیر استفاده می‌شود. در این روش بخشی از مسیر والد اول مستقیماً به فرزند منتقل می‌شود و شهرهای باقی‌مانده با ترتیب موجود در والد دوم قرار می‌گیرند.
+```bash
+python main.py   --symmetric "distance_matrix_symmetric.csv"   --asymmetric "distance_matrix_incomplete_asymmetric (1).csv"   --runs 100   --workers 2   --output final_results
+```
 
-این روش برای مسئله TSP مناسب است، چون در جواب نهایی نباید شهری حذف یا تکرار شود.
+## Algorithm Settings
 
-### عملگرهای جهش
+The default configuration is:
 
-در برنامه سه نوع جهش تعریف شده است:
+- Population size: 100
+- Crossover rate: 90%
+- Mutation rate: 5%
+- Elitism rate: 5%
+- Maximum generations: 200
+- Early stopping patience: 40 generations
+- Selection method: Tournament Selection
+- Default mutation: Inversion
 
-* در جهش `swap` جای دو شهر با یکدیگر عوض می‌شود.
-* در جهش `inversion` ترتیب یک بخش از مسیر برعکس می‌شود.
-* در جهش `scramble` ترتیب شهرهای یک بخش به‌صورت تصادفی تغییر می‌کند.
+## How the Code Works
 
-جهش باعث می‌شود تنوع جمعیت حفظ شود و الگوریتم خیلی زود در یک جواب ضعیف متوقف نشود.
+### Reading the Distance Matrix
 
-### روش‌های جایگزینی
+The `load_distance_matrix` function reads a CSV file and converts it into a NumPy matrix. It also verifies that the matrix is square.
 
-پس از تولید فرزندان باید مشخص شود چه جواب‌هایی وارد نسل بعد شوند. در کد سه روش در نظر گرفته شده است.
+### Route Representation
 
-در روش نسلی، فرزندان جایگزین جمعیت قبلی می‌شوند و تعدادی از بهترین والدها نیز به‌عنوان نخبه حفظ می‌شوند.
+Each route is stored as an array of city indices.
 
-در روش `μ + λ` والدها و فرزندان با هم ترکیب می‌شوند و بهترین جواب‌ها از میان همه آن‌ها انتخاب می‌شوند.
+For example:
 
-در روش `μ , λ` فقط فرزندان در انتخاب نسل بعد شرکت می‌کنند و والدها مستقیماً حفظ نمی‌شوند.
+```text
+[0, 4, 2, 1, 3]
+```
 
-### اجرای اصلی الگوریتم
+The last city is automatically connected to the first city when the route cost is calculated.
 
-تابع `run_genetic_algorithm` بخش اصلی برنامه است. ابتدا جمعیت اولیه تولید می‌شود و هزینه تمام مسیرها محاسبه می‌شود. سپس در هر نسل مراحل انتخاب والد، ترکیب، جهش و جایگزینی انجام می‌شود.
+### Fitness Calculation
 
-بهترین مسیر مشاهده‌شده در تمام نسل‌ها ذخیره می‌شود. اگر برای تعداد مشخصی نسل هیچ بهبودی ایجاد نشود، الگوریتم متوقف می‌شود. این شرط باعث می‌شود اجرای الگوریتم پس از رسیدن به حالت تقریباً پایدار، بی‌دلیل ادامه پیدا نکند.
+The fitness value is the total route distance. Since this is a minimization problem, a smaller value means a better solution.
 
-### آزمایش پارامترها
+For the incomplete matrix, missing edges receive a very large penalty. This prevents invalid routes from being selected as good solutions.
 
-تابع `create_experiment_settings` حالت‌های مختلف آزمایش را مشخص می‌کند. در این قسمت اثر نوع و درصد جهش، درصد ترکیب، درصد نخبگی و روش جایگزینی بررسی می‌شود.
+### Initial Population
 
-برای اینکه اثر هر پارامتر مشخص باشد، در هر آزمایش فقط همان پارامتر تغییر می‌کند و سایر تنظیمات ثابت باقی می‌مانند.
+For the complete matrix, random permutations are generated.
 
-### اجرای چندباره الگوریتم
+For the incomplete matrix, the program tries to generate routes using available edges so that the initial population contains more valid tours.
 
-چون الگوریتم ژنتیک دارای بخش‌های تصادفی است، نتیجه یک اجرا برای قضاوت کافی نیست. به همین دلیل هر تنظیم با ۱۰۰ مقدار اولیه متفاوت اجرا می‌شود.
+### Selection
 
-پس از پایان اجراها، میانگین، انحراف معیار، کمترین طول مسیر، بیشترین طول مسیر و نسل همگرایی محاسبه می‌شود. میانگین نشان‌دهنده عملکرد کلی الگوریتم است و انحراف معیار میزان تغییر نتایج بین اجراهای مختلف را نشان می‌دهد.
+Tournament selection chooses a few chromosomes randomly and keeps the best one as a parent.
 
-### رسم نمودارها
+### Crossover
 
-تابع `plot_fitness_curve` تغییر بهترین طول مسیر را در طول نسل‌ها رسم می‌کند. کاهش مقدار نمودار نشان می‌دهد که الگوریتم به‌تدریج مسیرهای کوتاه‌تری پیدا کرده است.
+Ordered Crossover is used because it preserves a valid permutation and prevents cities from being duplicated or removed.
 
-تابع `plot_comparison` نیز میانگین و انحراف معیار نتایج تنظیمات مختلف را رسم می‌کند. با استفاده از این نمودار می‌توان اثر نرخ جهش، نرخ ترکیب، نخبگی و روش جایگزینی را با یکدیگر مقایسه کرد.
+### Mutation
 
-### خروجی برنامه
+The code supports three mutation methods:
 
-برنامه نتایج کامل هر اجرا را در فایل‌های `raw_results` ذخیره می‌کند. نتایج خلاصه‌شده شامل میانگین و انحراف معیار در فایل‌های `summary` قرار می‌گیرند. بهترین مسیر هر حالت نیز در فایل JSON ذخیره می‌شود.
+- Swap: exchanges two cities
+- Inversion: reverses part of the route
+- Scramble: randomly shuffles part of the route
 
-در نتیجه، این برنامه علاوه بر پیدا کردن یک مسیر مناسب برای مسئله TSP، اثر پارامترهای مختلف الگوریتم ژنتیک را نیز بررسی و مقایسه می‌کند.
+Mutation maintains population diversity and reduces the chance of premature convergence.
+
+### Replacement
+
+The program supports:
+
+- Generational replacement with elitism
+- `mu + lambda`: selects the best solutions from parents and children
+- `mu, lambda`: selects the next generation only from children
+
+### Stopping Condition
+
+The algorithm stops when:
+
+- The maximum number of generations is reached, or
+- No better solution is found for a fixed number of consecutive generations
+
+## Output Files
+
+The program creates files such as:
+
+```text
+all_results_summary.csv
+raw_results_symmetric.csv
+summary_symmetric.csv
+best_routes_symmetric.json
+raw_results_incomplete_asymmetric.csv
+summary_incomplete_asymmetric.csv
+best_routes_incomplete_asymmetric.json
+```
+
+It also creates fitness and comparison plots in PNG format.
+
+## Checking the Results
+
+A correct result should satisfy the following conditions:
+
+- Every route contains all cities exactly once
+- No city is repeated
+- The final route cost is finite
+- `valid_route_percent` should be close to or equal to 100
+- The fitness curve should generally decrease and then become stable
+- Repeating the experiment with the same seeds should produce the same results
+
+## Notes
+
+The Genetic Algorithm is stochastic, so one execution is not enough for reliable evaluation. For this reason, each setting is executed 100 times using different random seeds, and the mean and standard deviation are reported.
